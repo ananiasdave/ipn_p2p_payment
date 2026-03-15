@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -49,6 +49,8 @@ export function SendMoneyPage() {
   const [successResponse, setSuccessResponse] = useState<any>(null);
   const [errorResponse, setErrorResponse] = useState<any>(null);
   const [showContacts, setShowContacts] = useState(false);
+  const [exchangeRate, setExchangeRate] = useState<number | null>(null);
+  const [isLoadingRate, setIsLoadingRate] = useState(false);
 
   const currentSchema = paymentType === 'local' ? localSchema : internationalSchema;
 
@@ -66,6 +68,33 @@ export function SendMoneyPage() {
       senderAccountNumber: '0987654321',
     },
   });
+
+  const currencyValue = watch('currency');
+  const amountValue = watch('amount');
+
+  // Fetch exchange rate when currency changes
+  useEffect(() => {
+    if (paymentType === 'international' && currencyValue && currencyValue !== 'NAD') {
+      const fetchRate = async () => {
+        setIsLoadingRate(true);
+        try {
+          const response = await axios.post('http://localhost:3080/api/convert', {
+            amount: 1,
+            currency: currencyValue
+          });
+          setExchangeRate(response.data.rate);
+        } catch (err) {
+          console.error('Failed to fetch exchange rate', err);
+          setExchangeRate(null);
+        } finally {
+          setIsLoadingRate(false);
+        }
+      };
+      fetchRate();
+    } else {
+      setExchangeRate(null);
+    }
+  }, [currencyValue, paymentType]);
 
   const receiverValue = watch('receiverAccountNumber');
 
@@ -304,6 +333,30 @@ export function SendMoneyPage() {
               </div>
               {errors.amount && (
                 <span className="text-red-500 text-xs">{errors.amount.message}</span>
+              )}
+
+              {/* Exchange Rate Display */}
+              {paymentType === 'international' && currencyValue !== 'NAD' && (
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-xl animate-fade-in">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider">Exchange Rate</span>
+                    {isLoadingRate ? (
+                      <Loader2 size={14} className="animate-spin text-blue-400" />
+                    ) : (
+                      <span className="text-sm font-bold text-blue-800">
+                        1 {currencyValue} = {exchangeRate ? fmt(exchangeRate) : '—'} NAD
+                      </span>
+                    )}
+                  </div>
+                  {exchangeRate && amountValue > 0 && (
+                    <div className="pt-2 border-t border-blue-100 flex justify-between items-center">
+                      <span className="text-sm text-blue-600">Estimated Cost</span>
+                      <span className="text-lg font-black text-blue-900">
+                         N$ {fmt(amountValue * exchangeRate)}
+                      </span>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
