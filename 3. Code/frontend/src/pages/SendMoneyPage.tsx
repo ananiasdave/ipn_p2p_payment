@@ -16,25 +16,40 @@ const fmt = (n: number) =>
   n.toLocaleString('en-NA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 // ── Zod schemas ────────────────────────────────────────────────
-const localSchema = z.object({
-  senderAccountNumber: z.string().min(10).regex(/^\d+$/),
-  receiverAccountNumber: z.string().min(10, 'Must be at least 10 digits').regex(/^\d+$/, 'Must contain only digits'),
-  amount: z.number({ message: 'Amount is required' }).positive('Must be greater than zero'),
-  currency: z.literal('NAD'),
-  reference: z.string().min(1, 'Reference is required').max(50, 'Maximum 50 characters'),
-});
 
-const internationalSchema = z.object({
-  senderAccountNumber: z.string().min(10).regex(/^\d+$/),
-  receiverAccountNumber: z.string().min(10, 'Must be at least 10 digits').regex(/^\d+$/, 'Must contain only digits'),
-  amount: z.number({ message: 'Amount is required' }).positive('Must be greater than zero'),
-  currency: z.enum(['NAD', 'USD', 'EUR', 'GBP', 'ZAR', 'BWP'] as const),
-  reference: z.string().min(1, 'Reference is required').max(50, 'Maximum 50 characters'),
-});
 
-type LocalForm = z.infer<typeof localSchema>;
-type InternationalForm = z.infer<typeof internationalSchema>;
-type PaymentFormValues = LocalForm | InternationalForm;
+
+// Since we need to check contacts for bicCode requirement, let's make a factory or handle it in the component
+const createSchema = (contacts: Contact[]) => {
+  const baseSchema = z.object({
+    senderAccountNumber: z.string().min(10).regex(/^\d+$/),
+    receiverAccountNumber: z.string().min(10, 'Must be at least 10 digits').regex(/^\d+$/, 'Must contain only digits'),
+    amount: z.number({ message: 'Amount is required' }).positive('Must be greater than zero'),
+    currency: z.enum(['NAD', 'USD', 'EUR', 'GBP', 'ZAR', 'BWP'] as const),
+    reference: z.string().min(1, 'Reference is required').max(50, 'Maximum 50 characters'),
+    bicCode: z.string().optional()
+  });
+
+  return baseSchema.superRefine((data, ctx) => {
+    const isSavedContact = contacts.some(c => c.account === data.receiverAccountNumber);
+    if (!isSavedContact && !data.bicCode) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "BIC Code is mandatory for new recipients",
+        path: ["bicCode"]
+      });
+    }
+    if (data.bicCode && data.bicCode.length !== 8 && data.bicCode.length !== 11) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "BIC must be 8 or 11 characters",
+        path: ["bicCode"]
+      });
+    }
+  });
+};
+
+type PaymentFormValues = z.infer<ReturnType<typeof createSchema>>;
 
 // ── Component ──────────────────────────────────────────────────
 export function SendMoneyPage() {
@@ -48,16 +63,19 @@ export function SendMoneyPage() {
   const [isLoadingRate, setIsLoadingRate] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [availableRates, setAvailableRates] = useState<Record<string, number>>({});
+  const [availableBics, setAvailableBics] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const [contactsData, ratesData] = await Promise.all([
+        const [contactsData, ratesData, bicsData] = await Promise.all([
           api.getContacts(),
-          api.getRates()
+          api.getRates(),
+          api.getBics()
         ]);
         setContacts(contactsData);
         setAvailableRates(ratesData);
+        setAvailableBics(bicsData);
 
         // Handle navigation pre-fill from Contacts page
         const state = location.state as { prefillAccount?: string, isInternational?: boolean };
@@ -78,7 +96,7 @@ export function SendMoneyPage() {
     fetchInitialData();
   }, [location.state]);
 
-  const currentSchema = paymentType === 'local' ? localSchema : internationalSchema;
+  const schema = createSchema(contacts);
 
   const {
     register,
@@ -88,7 +106,7 @@ export function SendMoneyPage() {
     setValue,
     watch,
   } = useForm<PaymentFormValues>({
-    resolver: zodResolver(currentSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
       currency: 'NAD',
       senderAccountNumber: '0987654321',
@@ -153,6 +171,10 @@ export function SendMoneyPage() {
 
     // Set receiver account after currency so validators pass
     setValue('receiverAccountNumber', account, { shouldValidate: true });
+    // Set BIC if contact has one
+    if (selectedContact?.bic) {
+      setValue('bicCode', selectedContact.bic, { shouldValidate: true });
+    }
     setShowContacts(false);
   };
 
@@ -362,6 +384,36 @@ export function SendMoneyPage() {
                   <span className="text-red-500 text-xs">{errors.receiverAccountNumber.message}</span>
                 )}
               </div>
+            </div>
+
+            {/* BIC Code Dropdown (Mandatory if not contact) */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">BIC / SWIFT Code</label>
+              <div className="relative">
+                <select
+                  {...register('bicCode')}
+                  className={`w-full px-4 py-3 rounded-xl border ${
+                    errors.bicCode ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                  } focus:outline-none focus:border-[#8B3A3A] focus:ring-2 focus:ring-[#8B3A3A]/20 transition-all font-mono appearance-none`}
+                >
+                  <option value="">Select BIC Code</option>
+                  {availableBics.map(bic => (
+                    <option key={bic} value={bic}>{bic}</option>
+                  ))}
+                  {/* Allow custom entry if needed? The requirement says dropdown selection retrieved by service. */}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                  <ChevronDown size={18} />
+                </div>
+              </div>
+              {errors.bicCode && (
+                <span className="text-red-500 text-xs">{errors.bicCode.message}</span>
+              )}
+              {!contacts.some(c => c.account === receiverValue) && receiverValue?.length >= 10 && !watch('bicCode') && (
+                <p className="text-[10px] text-amber-600 font-semibold flex items-center gap-1 mt-1">
+                  <AlertCircle size={10} /> New recipient detected. BIC code is mandatory.
+                </p>
+              )}
             </div>
 
             {/* Amount & Currency */}

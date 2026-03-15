@@ -15,6 +15,11 @@ export const api = {
     return response.data;
   },
 
+  getBics: async () => {
+    const response = await axios.get(`${API_BASE_URL}/rates/bics`);
+    return response.data;
+  },
+
   // Payment Service
   getSummary: async () => {
     const response = await axios.get(`${API_BASE_URL}/p2p-payment/summary`);

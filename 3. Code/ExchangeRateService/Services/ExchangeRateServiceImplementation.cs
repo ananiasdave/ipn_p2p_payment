@@ -34,4 +34,17 @@ public class ExchangeRateServiceImplementation : IExchangeRateService
     {
         return Task.FromResult(_rates);
     }
+
+    public Task<System.Collections.Generic.List<string>> GetBicsAsync()
+    {
+        var bics = new System.Collections.Generic.List<string>
+        {
+            "BWINNAWX", // Bank Windhoek
+            "FIRNNAWX", // FNB Namibia
+            "NEDNNAWX", // Nedbank Namibia
+            "SBICNAWX", // Standard Bank
+            "HSBCGB2L"  // HSBC London (International)
+        };
+        return Task.FromResult(bics);
+    }
 }

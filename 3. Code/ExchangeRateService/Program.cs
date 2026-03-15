@@ -35,4 +35,11 @@ app.MapGet("/api/rates", async (IExchangeRateService exchangeRateService) =>
 })
 .WithName("GetRates");
 
+app.MapGet("/api/rates/bics", async (IExchangeRateService exchangeRateService) =>
+{
+    var bics = await exchangeRateService.GetBicsAsync();
+    return Results.Ok(bics);
+})
+.WithName("GetBics");
+
 app.Run();

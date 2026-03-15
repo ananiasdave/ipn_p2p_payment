@@ -175,7 +175,7 @@ export function HomePage() {
                                      </div>
                                  )}
                              </div>
-                             <span className="text-xs font-medium text-gray-600 group-hover:text-gray-900 truncate max-w-[60px]">{contact.name.split(' ')[0]}</span>
+                             <span className="text-xs font-medium text-gray-600 group-hover:text-gray-900 truncate max-w-[80px]" title={contact.name}>{contact.name}</span>
                         </Link>
                    ))}
                    <Link to="/contacts" className="flex flex-col items-center gap-2 cursor-pointer group">
