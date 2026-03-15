@@ -62,8 +62,8 @@ export function ContactsPage() {
           <h2 className="text-3xl font-bold text-gray-800">Contacts & Beneficiaries</h2>
           <p className="text-gray-500 mt-1">Manage your local and international recipients</p>
         </div>
-        <button className="flex items-center gap-2 px-6 py-3 rounded-xl text-white bg-gray-900 hover:bg-black transition-all font-bold shadow-lg shadow-black/10">
-          <Plus size={20} />
+        <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white bg-[#8B3A3A] hover:bg-[#722F2F] transition-all font-medium text-sm shadow-lg shadow-[#8B3A3A]/10">
+          <Plus size={18} />
           <span>Add Beneficiary</span>
         </button>
       </div>

@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Home, User, DollarSign, TrendingUp, Bell } from 'lucide-react';
+import { Home, User, DollarSign, TrendingUp, Bell, Settings } from 'lucide-react';
 import logo from '../assets/Logo.png';
 
 export function DashboardLayout() {
@@ -25,7 +25,7 @@ export function DashboardLayout() {
           <img src={logo} alt="IPN Logo" className="w-10 h-10 object-contain" />
         </div>
         
-        <nav className="flex-1 flex flex-col gap-6 w-full px-3">
+        <nav className="flex-1 flex flex-col justify-center gap-6 w-full px-3">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
@@ -47,7 +47,7 @@ export function DashboardLayout() {
         
         <div className="mt-auto pt-6 w-full px-3">
           <button className="w-full flex items-center justify-center p-3 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors">
-            <User size={20} />
+            <Settings size={20} />
           </button>
         </div>
       </aside>

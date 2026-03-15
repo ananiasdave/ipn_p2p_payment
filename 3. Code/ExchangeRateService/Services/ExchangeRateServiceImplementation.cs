@@ -39,11 +39,18 @@ public class ExchangeRateServiceImplementation : IExchangeRateService
     {
         var bics = new System.Collections.Generic.List<string>
         {
-            "BWINNAWX", // Bank Windhoek
-            "FIRNNAWX", // FNB Namibia
-            "NEDNNAWX", // Nedbank Namibia
-            "SBICNAWX", // Standard Bank
-            "HSBCGB2L"  // HSBC London (International)
+            "BWINNAWX", // Bank Windhoek (NAM)
+            "FIRNNAWX", // FNB Namibia (NAM)
+            "NEDNNAWX", // Nedbank Namibia (NAM)
+            "SBICNAWX", // Standard Bank (NAM)
+            "TRUSTBNX", // Trustco Bank (NAM)
+            "HSBCGB2L", // HSBC London (UK)
+            "CITIUS33", // Citibank New York (USA)
+            "CHASSF33", // JPMorgan Chase (USA)
+            "BARCGB2L", // Barclays Bank (UK)
+            "DBSSSGXX", // DBS Bank (Singapore)
+            "STCBZAJJ", // Standard Chartered (South Africa)
+            "ABNANL2A"  // ABN AMRO (Netherlands)
         };
         return Task.FromResult(bics);
     }

@@ -220,7 +220,7 @@ export function TransactionHistoryPage() {
                    </div>
                 </div>
                 
-                <button className="mt-8 w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-all flex items-center justify-center gap-2">
+                <button className="mt-8 w-full py-3 bg-[#8B3A3A] text-white rounded-xl font-bold hover:bg-[#722F2F] transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all">
                    <FileText size={16} />
                    Download Receipt
                 </button>
