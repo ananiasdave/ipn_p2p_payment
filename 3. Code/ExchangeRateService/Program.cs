@@ -28,4 +28,11 @@ app.MapPost("/api/convert", async (ConvertRequest request, IExchangeRateService 
 })
 .WithName("Convert");
 
+app.MapGet("/api/rates", async (IExchangeRateService exchangeRateService) =>
+{
+    var rates = await exchangeRateService.GetRatesAsync();
+    return Results.Ok(rates);
+})
+.WithName("GetRates");
+
 app.Run();

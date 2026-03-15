@@ -1,10 +1,43 @@
-import { Plus, Send, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Send, User, Globe, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { api } from '../services/api';
 
 const fmt = (n: number) =>
   n.toLocaleString('en-NA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function HomePage() {
+  const [summary, setSummary] = useState({ amountSent: 0, amountReceived: 0 });
+  const [quickTransfers, setQuickTransfers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [summaryData, contactsData] = await Promise.all([
+          api.getSummary(),
+          api.getContacts()
+        ]);
+        setSummary(summaryData);
+        // Take top 4 for quick transfers
+        setQuickTransfers(contactsData.slice(0, 4));
+      } catch (err) {
+        console.error('Failed to fetch home page data', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-20 text-gray-400">
+        <Loader2 className="animate-spin" size={32} />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-6xl mx-auto w-full animate-fade-in pb-10">
       <div className="flex justify-between items-center mb-10">
@@ -43,7 +76,10 @@ export function HomePage() {
                          <path d="M6 10V2M6 2L2 6M6 2L10 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                      </svg>
                  </div>
-                 <span className="text-xl font-bold">N$ {fmt(1263.39)}</span>
+                 <div className="flex flex-col">
+                     <span className="text-[10px] text-white/50 uppercase tracking-wider font-bold">Received (MTD)</span>
+                     <span className="text-xl font-bold">N$ {fmt(summary.amountReceived)}</span>
+                 </div>
              </div>
              <div className="h-12 w-px border-l border-dashed border-white/30"></div>
              <div className="flex items-center gap-3">
@@ -52,7 +88,10 @@ export function HomePage() {
                          <path d="M6 2V10M6 10L2 6M6 10L10 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                      </svg>
                  </div>
-                 <span className="text-xl font-bold">N$ {fmt(1263.39)}</span>
+                 <div className="flex flex-col">
+                     <span className="text-[10px] text-white/50 uppercase tracking-wider font-bold">Sent (MTD)</span>
+                     <span className="text-xl font-bold">N$ {fmt(summary.amountSent)}</span>
+                 </div>
              </div>
         </div>
       </div>
@@ -85,22 +124,29 @@ export function HomePage() {
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
               <h4 className="text-lg font-bold text-gray-800 mb-4">Quick Transfers</h4>
               <div className="flex gap-4 mb-6">
-                   {[1,2,3,4].map((i) => (
-                        <div key={i} className="flex flex-col items-center gap-2 cursor-pointer group">
-                             <div className="w-14 h-14 rounded-full bg-gray-100 border-2 border-transparent group-hover:border-[#8B3A3A] transition-all flex items-center justify-center text-gray-400 overflow-hidden p-1">
+                   {quickTransfers.map((contact) => (
+                        <Link key={contact.account} to="/send" className="flex flex-col items-center gap-2 cursor-pointer group">
+                             <div className="relative w-14 h-14 rounded-full bg-gray-100 border-2 border-transparent group-hover:border-[#8B3A3A] transition-all flex items-center justify-center text-gray-400 overflow-hidden p-1">
                                  <div className="w-full h-full bg-gray-200 rounded-full flex items-center justify-center">
-                                      <User size={20} />
+                                      {contact.isInternational ? <Globe size={20} className="text-blue-500" /> : <User size={20} />}
                                  </div>
+                                 {contact.isInternational && (
+                                     <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm border border-gray-100">
+                                         <div className="w-4 h-4 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+                                             <span className="text-[8px] font-bold text-gray-600">INT</span>
+                                         </div>
+                                     </div>
+                                 )}
                              </div>
-                             <span className="text-xs font-medium text-gray-600 group-hover:text-gray-900">User {i}</span>
-                        </div>
+                             <span className="text-xs font-medium text-gray-600 group-hover:text-gray-900 truncate max-w-[60px]">{contact.name.split(' ')[0]}</span>
+                        </Link>
                    ))}
-                   <div className="flex flex-col items-center gap-2 cursor-pointer group">
+                   <Link to="/contacts" className="flex flex-col items-center gap-2 cursor-pointer group">
                         <div className="w-14 h-14 rounded-full bg-gray-50 border border-dashed border-gray-300 group-hover:bg-gray-100 group-hover:border-gray-400 transition-all flex items-center justify-center text-gray-400">
                             <Plus size={20} />
                         </div>
                          <span className="text-xs font-medium text-gray-500">Add</span>
-                   </div>
+                   </Link>
               </div>
           </div>
       </div>

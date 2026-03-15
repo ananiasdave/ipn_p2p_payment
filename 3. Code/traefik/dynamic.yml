@@ -17,8 +17,13 @@ http:
       entryPoints:
         - web
     exchange-rate-service:
-      rule: "PathPrefix(`/api/convert`)"
+      rule: "PathPrefix(`/api/convert`) || PathPrefix(`/api/rates`)"
       service: exchange-rate-service
+      entryPoints:
+        - web
+    account-service:
+      rule: "PathPrefix(`/api/accounts`)"
+      service: account-service
       entryPoints:
         - web
 
@@ -27,6 +32,10 @@ http:
       loadBalancer:
         servers:
           - url: "http://frontend:80"
+    account-service:
+      loadBalancer:
+        servers:
+          - url: "http://account-service:8080"
     payment-service:
       loadBalancer:
         servers:

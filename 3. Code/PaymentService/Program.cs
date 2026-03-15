@@ -92,7 +92,20 @@ app.MapPost("/api/p2p-payment", async (PaymentRequest req, IValidator<PaymentReq
     }
     
     return Results.Ok(result);
+});
+
+app.MapGet("/api/p2p-payment/history", async (IPaymentService paymentService) =>
+{
+    var history = await paymentService.GetPaymentHistoryAsync();
+    return Results.Ok(history);
 })
-.WithName("P2pPayment");
+.WithName("GetPaymentHistory");
+
+app.MapGet("/api/p2p-payment/summary", async (IPaymentService paymentService) =>
+{
+    var summary = await paymentService.GetPaymentSummaryAsync();
+    return Results.Ok(summary);
+})
+.WithName("GetPaymentSummary");
 
 app.Run();

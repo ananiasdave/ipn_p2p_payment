@@ -1,4 +1,6 @@
+using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using PaymentService.Data;
 using PaymentService.Interfaces;
 using PaymentService.Models;
@@ -18,5 +20,12 @@ public class PaymentRepository : IPaymentRepository
     {
         _context.Payments.Add(payment);
         await _context.SaveChangesAsync();
+    }
+
+    public async Task<System.Collections.Generic.List<Payment>> GetPaymentsAsync()
+    {
+        return await _context.Payments
+            .OrderByDescending(p => p.Id)
+            .ToListAsync();
     }
 }

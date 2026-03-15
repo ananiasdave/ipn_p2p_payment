@@ -74,4 +74,28 @@ public class PaymentServiceImplementation : IPaymentService
             };
         }
     }
+
+    public async Task<System.Collections.Generic.List<Payment>> GetPaymentHistoryAsync()
+    {
+        return await _repository.GetPaymentsAsync();
+    }
+
+    public async Task<PaymentSummaryResponse> GetPaymentSummaryAsync()
+    {
+        var payments = await _repository.GetPaymentsAsync();
+        
+        var currentMonthPayments = payments
+            .Where(p => p.Status == "SUCCESS")
+            .ToList();
+
+        // Calculate amount sent in NAD purely for simplicity
+        // Note: A real implementation would handle multi-currency conversions using ExchangeRateService
+        var amountSent = currentMonthPayments.Sum(p => p.Amount);
+
+        return new PaymentSummaryResponse
+        {
+            AmountSent = amountSent,
+            AmountReceived = 0 // Mocked, as incoming payments aren't registered by this system
+        };
+    }
 }

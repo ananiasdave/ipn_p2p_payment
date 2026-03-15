@@ -21,7 +21,7 @@ public class PaymentRequestValidator : AbstractValidator<PaymentRequest>
 
         RuleFor(x => x.Currency)
             .NotEmpty().WithErrorCode("ERR001").WithMessage("currency is required.")
-            .Must(c => c == "NAD").WithErrorCode("ERR005").WithMessage("currency must be NAD.");
+            .Must(c => new[] { "NAD", "USD", "EUR", "GBP", "ZAR", "BWP" }.Contains(c)).WithErrorCode("ERR005").WithMessage("currency must be valid (NAD, USD, EUR, GBP, ZAR, BWP).");
 
         RuleFor(x => x.Reference)
             .NotEmpty().WithErrorCode("ERR001").WithMessage("reference is required.")

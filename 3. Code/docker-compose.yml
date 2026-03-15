@@ -25,6 +25,14 @@ services:
       - payment-service
       - ref-gen-service
       - exchange-rate-service
+      - account-service
+
+  account-service:
+    build:
+      context: ./AccountService
+      dockerfile: Dockerfile
+    networks:
+      - ipn-network
 
   payment-service:
     build:

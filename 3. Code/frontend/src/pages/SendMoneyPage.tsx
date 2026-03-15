@@ -2,17 +2,10 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import axios from 'axios';
 import { CheckCircle2, AlertCircle, ArrowRight, Loader2, User, ChevronDown, Globe, MapPin } from 'lucide-react';
 
-// ── Mock Contact List ──────────────────────────────────────────
-const CONTACTS = [
-  { name: 'Alice Shikongo',    account: '1234567890' },
-  { name: 'Jonas Amupanda',    account: '0987654321' },
-  { name: 'Maria Nangombe',    account: '1122334455' },
-  { name: 'Peter Hamutenya',   account: '5566778899' },
-  { name: 'Grace Nekongo',     account: '6677889900' },
-];
+import { api } from '../services/api';
+import type { Contact } from './ContactsPage';
 
 // ── Supported International Currencies ─────────────────────────
 const CURRENCIES = ['NAD', 'USD', 'EUR', 'GBP', 'ZAR', 'BWP'];
@@ -51,6 +44,24 @@ export function SendMoneyPage() {
   const [showContacts, setShowContacts] = useState(false);
   const [exchangeRate, setExchangeRate] = useState<number | null>(null);
   const [isLoadingRate, setIsLoadingRate] = useState(false);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [availableRates, setAvailableRates] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const [contactsData, ratesData] = await Promise.all([
+          api.getContacts(),
+          api.getRates()
+        ]);
+        setContacts(contactsData);
+        setAvailableRates(ratesData);
+      } catch (err) {
+        console.error('Failed to fetch initial data', err);
+      }
+    };
+    fetchInitialData();
+  }, []);
 
   const currentSchema = paymentType === 'local' ? localSchema : internationalSchema;
 
@@ -75,26 +86,31 @@ export function SendMoneyPage() {
   // Fetch exchange rate when currency changes
   useEffect(() => {
     if (paymentType === 'international' && currencyValue && currencyValue !== 'NAD') {
-      const fetchRate = async () => {
-        setIsLoadingRate(true);
-        try {
-          const response = await axios.post('http://localhost:3080/api/convert', {
-            amount: 1,
-            currency: currencyValue
-          });
-          setExchangeRate(response.data.rate);
-        } catch (err) {
-          console.error('Failed to fetch exchange rate', err);
-          setExchangeRate(null);
-        } finally {
-          setIsLoadingRate(false);
-        }
-      };
-      fetchRate();
+      setIsLoadingRate(true);
+      if (availableRates[currencyValue]) {
+         setExchangeRate(availableRates[currencyValue]);
+         setIsLoadingRate(false);
+      } else {
+         // Fallback if not loaded yet
+         const fetchRate = async () => {
+           try {
+             // Instead of a custom convert endpoint, we now rely on the dictionary from getRates
+             // This is simpler and avoids an extra round trip for each selection if loaded upfront
+             const rates = await api.getRates();
+             setAvailableRates(rates);
+             setExchangeRate(rates[currencyValue] || null);
+           } catch(err) {
+             setExchangeRate(null);
+           } finally {
+             setIsLoadingRate(false);
+           }
+         };
+         fetchRate();
+      }
     } else {
       setExchangeRate(null);
     }
-  }, [currencyValue, paymentType]);
+  }, [currencyValue, paymentType, availableRates]);
 
   const receiverValue = watch('receiverAccountNumber');
 
@@ -112,8 +128,8 @@ export function SendMoneyPage() {
     const payload = { ...data, amount: Math.round(data.amount * 100) / 100 };
 
     try {
-      const response = await axios.post('http://localhost:3080/api/p2p-payment', payload);
-      setSuccessResponse(response.data);
+      const response = await api.processPayment(payload); // Use api.processPayment
+      setSuccessResponse(response); // api.processPayment returns the data directly
       reset({ ...data, reference: '', amount: undefined as any, receiverAccountNumber: '' });
     } catch (err: any) {
       setErrorResponse(
@@ -269,9 +285,9 @@ export function SendMoneyPage() {
                 </div>
 
                 {/* Contact list dropdown */}
-                {showContacts && (
-                  <div className="absolute z-30 w-full mt-1 bg-white rounded-xl shadow-lg border border-gray-200 max-h-52 overflow-y-auto">
-                    {CONTACTS.map((c) => (
+                  {showContacts && (
+                    <div className="absolute z-30 w-full mt-1 bg-white rounded-xl shadow-lg border border-gray-200 max-h-52 overflow-y-auto">
+                    {contacts.map((c) => (
                       <button
                         key={c.account}
                         type="button"
@@ -280,12 +296,18 @@ export function SendMoneyPage() {
                           receiverValue === c.account ? 'bg-[#8B3A3A]/5' : ''
                         }`}
                       >
-                        <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 flex-shrink-0">
-                          <User size={14} />
+                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 flex-shrink-0">
+                          {c.isInternational ? <Globe size={16} className="text-blue-500" /> : <User size={16} />}
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-800 truncate">{c.name}</p>
-                          <p className="text-xs text-gray-500 font-mono">{c.account}</p>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex justify-between items-baseline">
+                            <p className="text-sm font-bold text-gray-800 truncate">{c.name}</p>
+                            <p className="text-[10px] font-mono text-gray-400">{c.bic}</p>
+                          </div>
+                          <div className="flex justify-between items-center mt-0.5">
+                            <p className="text-xs text-gray-500 truncate">{c.bank}</p>
+                            <p className="text-[10px] text-gray-400 font-mono">{c.account}</p>
+                          </div>
                         </div>
                         {receiverValue === c.account && (
                           <CheckCircle2 size={16} className="ml-auto text-[#8B3A3A] flex-shrink-0" />
