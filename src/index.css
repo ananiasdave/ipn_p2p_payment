@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply antialiased text-gray-800 bg-gray-50;
+  }
+}
+
+/* Glassmorphism utilities */
+.glass-panel {
+  @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl shadow-purple-900/5;
+}
+
+input {
+  @apply transition-all duration-200 outline-none;
+}
+input:focus {
+  @apply ring-2 ring-purple-500/50 border-purple-500 shadow-sm shadow-purple-500/20 bg-white;
+}
