@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { CheckCircle2, AlertCircle, ArrowRight, Loader2, User, ChevronDown, Globe, MapPin } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 
 import { api } from '../services/api';
 import type { Contact } from './ContactsPage';
@@ -37,6 +38,7 @@ type PaymentFormValues = LocalForm | InternationalForm;
 
 // ── Component ──────────────────────────────────────────────────
 export function SendMoneyPage() {
+  const location = useLocation();
   const [paymentType, setPaymentType] = useState<'local' | 'international'>('local');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successResponse, setSuccessResponse] = useState<any>(null);
@@ -56,12 +58,25 @@ export function SendMoneyPage() {
         ]);
         setContacts(contactsData);
         setAvailableRates(ratesData);
+
+        // Handle navigation pre-fill from Contacts page
+        const state = location.state as { prefillAccount?: string, isInternational?: boolean };
+        if (state?.prefillAccount && contactsData.length > 0) {
+          // Temporarily set payment type first to force schema switch
+          const isIntl = state.isInternational === true;
+          setPaymentType(isIntl ? 'international' : 'local');
+          
+          // Use timeout to allow React Hook Form schema to switch before setting values
+          setTimeout(() => {
+             handleSelectContact(state.prefillAccount!, contactsData, isIntl);
+          }, 0);
+        }
       } catch (err) {
         console.error('Failed to fetch initial data', err);
       }
     };
     fetchInitialData();
-  }, []);
+  }, [location.state]);
 
   const currentSchema = paymentType === 'local' ? localSchema : internationalSchema;
 
@@ -114,9 +129,35 @@ export function SendMoneyPage() {
 
   const receiverValue = watch('receiverAccountNumber');
 
-  const selectContact = (account: string) => {
+  const handleSelectContact = (account: string, contactsList: Contact[] = contacts, forceIsInternational?: boolean) => {
+    const selectedContact = contactsList.find(c => c.account === account);
+    const isIntl = forceIsInternational !== undefined ? forceIsInternational : selectedContact?.isInternational;
+
+    if (isIntl) {
+      setPaymentType('international');
+      if (selectedContact?.country === 'United Kingdom') {
+         setValue('currency', 'GBP', { shouldValidate: true });
+      } else if (selectedContact?.country === 'Germany') {
+         setValue('currency', 'EUR', { shouldValidate: true });
+      } else if (selectedContact?.country === 'South Africa') {
+         setValue('currency', 'ZAR', { shouldValidate: true });
+      } else if (selectedContact?.country === 'Botswana') {
+         setValue('currency', 'BWP', { shouldValidate: true });
+      } else {
+         setValue('currency', 'USD', { shouldValidate: true });
+      }
+    } else {
+      setPaymentType('local');
+      setValue('currency', 'NAD', { shouldValidate: true });
+    }
+
+    // Set receiver account after currency so validators pass
     setValue('receiverAccountNumber', account, { shouldValidate: true });
     setShowContacts(false);
+  };
+
+  const selectContact = (account: string) => {
+    handleSelectContact(account);
   };
 
   const onSubmit = async (data: PaymentFormValues) => {

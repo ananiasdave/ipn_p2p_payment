@@ -82,6 +82,14 @@ export function ContactsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center p-8 text-center hover:bg-gray-100 hover:border-gray-300 transition-all cursor-pointer min-h-[250px]">
+          <div className="w-12 h-12 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 mb-4 bg-white shadow-sm">
+            <Plus size={24} />
+          </div>
+          <p className="font-bold text-gray-700 text-lg">Add New Beneficiary</p>
+          <p className="text-xs text-gray-500 mt-2 max-w-[150px]">Securely save accounts for quick access</p>
+        </div>
+
         {filteredContacts.map((contact) => (
           <div key={contact.account} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col group overflow-hidden">
             <div className="p-6 pb-4 flex items-start justify-between">
@@ -140,6 +148,7 @@ export function ContactsPage() {
 
             <Link
               to="/send"
+              state={{ prefillAccount: contact.account, isInternational: contact.isInternational }}
               className="mt-2 bg-gray-50 group-hover:bg-[#8B3A3A] p-4 flex items-center justify-center gap-2 transition-all"
             >
               <span className="text-xs font-bold text-gray-500 group-hover:text-white transition-colors">Send Money Now</span>
@@ -148,13 +157,6 @@ export function ContactsPage() {
           </div>
         ))}
 
-        <div className="bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center p-8 text-center hover:bg-gray-100 hover:border-gray-300 transition-all cursor-pointer">
-          <div className="w-12 h-12 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 mb-4">
-            <Plus size={24} />
-          </div>
-          <p className="font-bold text-gray-600">Add New Beneficiary</p>
-          <p className="text-xs text-gray-400 mt-1 max-w-[150px]">Securely save accounts for quick access</p>
-        </div>
       </div>
     </div>
   );
