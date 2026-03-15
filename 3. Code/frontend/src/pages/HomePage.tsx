@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Send, User, Globe, Loader2 } from 'lucide-react';
+import { Plus, Send, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../services/api';
 
@@ -9,18 +9,31 @@ const fmt = (n: number) =>
 export function HomePage() {
   const [summary, setSummary] = useState({ amountSent: 0, amountReceived: 0 });
   const [quickTransfers, setQuickTransfers] = useState<any[]>([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Helper to extract initials
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .substring(0, 2)
+      .toUpperCase();
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [summaryData, contactsData] = await Promise.all([
+        const [summaryData, contactsData, historyData] = await Promise.all([
           api.getSummary(),
-          api.getContacts()
+          api.getContacts(),
+          api.getHistory()
         ]);
         setSummary(summaryData);
         // Take top 4 for quick transfers
         setQuickTransfers(contactsData.slice(0, 4));
+        setRecentActivity(historyData.slice(0, 3));
       } catch (err) {
         console.error('Failed to fetch home page data', err);
       } finally {
@@ -98,37 +111,61 @@ export function HomePage() {
       
       {/* Decorative / Inspiration Elements Below for 'Real' Dashboard Feel */}
       <div className="grid grid-cols-2 gap-8 mt-10">
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-             <h4 className="text-lg font-bold text-gray-800 mb-4">Recent Activity</h4>
-             <div className="space-y-4">
-                 {[1,2,3].map((i) => (
-                    <div key={i} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-                        <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">
-                                <User size={18} />
-                            </div>
-                            <div>
-                                <p className="font-semibold text-gray-800 text-sm">Example Receiver {i}</p>
-                                <p className="text-xs text-gray-500">Today, 10:{i}5 AM</p>
-                            </div>
-                        </div>
-                        <div className="text-right">
-                             <p className="font-bold text-gray-800 text-sm">- N$ {fmt(250)}</p>
-                             <p className="text-xs text-green-600 font-medium">Completed</p>
-                        </div>
-                    </div>
-                 ))}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col">
+             <div className="flex justify-between items-center mb-4">
+                 <h4 className="text-lg font-bold text-gray-800">Recent Activity</h4>
+                 <Link to="/history" className="text-sm text-[#8B3A3A] font-semibold hover:underline">View All</Link>
              </div>
+             
+             {recentActivity.length === 0 ? (
+                 <div className="flex-1 flex flex-col items-center justify-center text-gray-400 py-8">
+                     <p>No recent transactions yet.</p>
+                 </div>
+             ) : (
+                 <div className="space-y-4">
+                     {recentActivity.map((tx) => (
+                        <div key={tx.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer border border-transparent hover:border-gray-100">
+                            <div className="flex items-center gap-4">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${
+                                  tx.type === 'SUCCESS' ? 'bg-green-100 text-green-700' : 
+                                  tx.type === 'FAILED' ? 'bg-red-100 text-red-700' : 
+                                  'bg-gray-100 text-gray-700'
+                                }`}>
+                                    {getInitials(tx.receiverAccountNumber)}
+                                </div>
+                                <div>
+                                    <p className="font-semibold text-gray-800 text-sm font-mono truncate max-w-[120px]" title={tx.receiverAccountNumber}>
+                                      {tx.receiverAccountNumber}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      {tx.createdAt 
+                                        ? new Date(tx.createdAt).toLocaleDateString() + ' ' + new Date(tx.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                                        : 'Recent'}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                 <p className="font-bold text-gray-800 text-sm">
+                                   -{tx.currency} {fmt(tx.amount)}
+                                 </p>
+                                 <p className={`text-xs font-medium ${tx.status === 'SUCCESS' ? 'text-green-600' : tx.status === 'FAILED' ? 'text-red-500' : 'text-gray-500'}`}>
+                                   {tx.status}
+                                 </p>
+                            </div>
+                        </div>
+                     ))}
+                 </div>
+             )}
           </div>
           
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
               <h4 className="text-lg font-bold text-gray-800 mb-4">Quick Transfers</h4>
               <div className="flex gap-4 mb-6">
-                   {quickTransfers.map((contact) => (
-                        <Link key={contact.account} to="/send" className="flex flex-col items-center gap-2 cursor-pointer group">
-                             <div className="relative w-14 h-14 rounded-full bg-gray-100 border-2 border-transparent group-hover:border-[#8B3A3A] transition-all flex items-center justify-center text-gray-400 overflow-hidden p-1">
-                                 <div className="w-full h-full bg-gray-200 rounded-full flex items-center justify-center">
-                                      {contact.isInternational ? <Globe size={20} className="text-blue-500" /> : <User size={20} />}
+                    {quickTransfers.map((contact) => (
+                        <Link key={contact.account} to="/send" state={{ prefillAccount: contact.account, isInternational: contact.isInternational }} className="flex flex-col items-center gap-2 cursor-pointer group">
+                             <div className="relative w-14 h-14 rounded-full bg-gray-100 border-2 border-transparent group-hover:border-[#8B3A3A] transition-all flex items-center justify-center text-gray-400 overflow-hidden p-1 shadow-sm">
+                                 <div className="w-full h-full bg-[#8B3A3A]/10 text-[#8B3A3A] rounded-full flex items-center justify-center font-bold text-lg">
+                                      {getInitials(contact.name)}
                                  </div>
                                  {contact.isInternational && (
                                      <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm border border-gray-100">
