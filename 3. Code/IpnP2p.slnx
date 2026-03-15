@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="ExchangeRateService/ExchangeRateService.csproj" />
+  <Project Path="PaymentService/PaymentService.csproj" />
+  <Project Path="RefGenService/RefGenService.csproj" />
+</Solution>

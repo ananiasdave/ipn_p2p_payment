@@ -1,0 +1,41 @@
+http:
+  routers:
+    frontend:
+      rule: "PathPrefix(`/`)"
+      service: frontend
+      entryPoints:
+        - web
+      priority: 1
+    payment-service:
+      rule: "PathPrefix(`/api/p2p-payment`)"
+      service: payment-service
+      entryPoints:
+        - web
+    ref-gen-service:
+      rule: "PathPrefix(`/api/generate-reference`)"
+      service: ref-gen-service
+      entryPoints:
+        - web
+    exchange-rate-service:
+      rule: "PathPrefix(`/api/convert`)"
+      service: exchange-rate-service
+      entryPoints:
+        - web
+
+  services:
+    frontend:
+      loadBalancer:
+        servers:
+          - url: "http://frontend:80"
+    payment-service:
+      loadBalancer:
+        servers:
+          - url: "http://payment-service:8080"
+    ref-gen-service:
+      loadBalancer:
+        servers:
+          - url: "http://ref-gen-service:8080"
+    exchange-rate-service:
+      loadBalancer:
+        servers:
+          - url: "http://exchange-rate-service:8080"

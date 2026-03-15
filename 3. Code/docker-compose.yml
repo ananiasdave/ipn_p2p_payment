@@ -1,0 +1,60 @@
+name: p2p-payment
+
+services:
+  gateway:
+    image: traefik:v3.0
+    command:
+      - "--api.insecure=true"
+      - "--providers.file.filename=/etc/traefik/dynamic.yml"
+      - "--entrypoints.web.address=:3080"
+    ports:
+      - "3080:3080"
+      - "8081:8080"
+    volumes:
+      - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+    networks:
+      - ipn-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    networks:
+      - ipn-network
+    depends_on:
+      - payment-service
+      - ref-gen-service
+      - exchange-rate-service
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: PaymentService/Dockerfile
+    environment:
+      - BaseUrl__RefGenService=http://ref-gen-service:8080
+      - BaseUrl__ExchangeRateService=http://exchange-rate-service:8080
+    volumes:
+      - payment-data:/app/data
+    networks:
+      - ipn-network
+
+  ref-gen-service:
+    build:
+      context: .
+      dockerfile: RefGenService/Dockerfile
+    networks:
+      - ipn-network
+
+  exchange-rate-service:
+    build:
+      context: .
+      dockerfile: ExchangeRateService/Dockerfile
+    networks:
+      - ipn-network
+
+networks:
+  ipn-network:
+    driver: bridge
+
+volumes:
+  payment-data:
