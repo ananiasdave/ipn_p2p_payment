@@ -51,7 +51,9 @@ public class ExchangeRateServiceImplementation : IExchangeRateService
             "BARCGB2L", // Barclays Bank (UK)
             "DBSSSGXX", // DBS Bank (Singapore)
             "STCBZAJJ", // Standard Chartered (South Africa)
-            "ABNANL2A"  // ABN AMRO (Netherlands)
+            "ABNANL2A", // ABN AMRO (Netherlands)
+            "DEUTDEFF", // Deutsche Bank (Germany)
+            "BNPAFRPP"  // BNP Paribas (France)
         };
         return Task.FromResult(bics);
     }
