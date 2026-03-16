@@ -1,122 +1,57 @@
-**Software Requirements Specification (SRS)**  
-**Instant Payments Namibia (IPN) – Person-to-Person (P2P) Payment Application**  
-**Version:** 1.4 (Refined for Evaluator Clarity)  
-**Date:** 15 March 2026  
-**Author:** David  
+# Instant Payments Namibia (IPN) – P2P Payment Application
 
-### 1. Introduction  
-This document provides a clear, complete, and evaluator-friendly specification for the IPN Developer Integration Challenge solution.  
+A microservice-based prototype that implements the IPN Developer Integration Challenge. It includes a React frontend, three .NET 8 microservices, and a Traefik gateway so all traffic is routed through a single public endpoint.
 
-The application fully meets every requirement stated in the original challenge document (pages 1–5):  
-- User interface to capture P2P payment details  
-- Construction and submission of the exact payment request to `/api/p2p-payment`  
-- Basic validation (client + server)  
-- Handling and display of the API response (status, transactionId, clientReference, message)  
+---
 
-The solution uses the requested technology stack (C# .NET 8 backend, React frontend, SQLite or JSON persistence) and is orchestrated with Docker Compose. An API Gateway serves as the single external entry point.  
+## 📝 Requirements
+All requirements are captured in **`1. Requirements/Requirement.md`** (the full Software Requirements Specification). This README is intentionally concise and focuses on what the project is and how to run it.
 
+---
 
-### 2. Scope  
-**In Scope** (exact match to challenge)  
-- Capture of all required payment fields  
-- Automatic clientReference generation  
-- Exact JSON request/response format defined in the Mock API Specification  
-- Server-side validation matching all rules on pages 3–5  
-- Display of transaction outcome  
-- Docker Compose deployment  
+## ▶️ Running the project
+1. Ensure **Docker** and **Docker Compose** are installed.
+2. From the repository root run:
 
-**Out of Scope** (explicitly stated in challenge)  
-- Authentication / authorisation  
-- Real payment processing or banking integration  
-- Database persistence beyond SQLite/JSON for this prototype  
-- Encryption or message signing  
+```bash
+docker compose up --build
+```
 
-### 3. Functional Requirements  
-
-#### 3.1 User Interface (Frontend – React)  
-- Built with React 18 + TypeScript + Vite + Tailwind CSS + React Hook Form + Zod  
-- Form contains exactly the fields required by the Mock API:  
-  - senderAccountNumber (numeric, ≥10 digits)  
-  - receiverAccountNumber (numeric, ≥10 digits)  
-  - amount (numeric > 0)  
-  - currency (locked to “NAD”)  
-  - reference (max 50 characters, non-empty)  
-- ClientReference is automatically generated (user does not enter it)  
-- Real-time validation prevents submission of invalid data  
-- Submit button is disabled until all fields are valid  
-- After submission, clearly displays:  
-  - Transaction status (SUCCESS or FAILED)  
-  - Transaction ID (if returned)  
-  - Client transaction reference  
-  - Response message from the API  
-
-All API calls from the frontend go through the single Gateway entry point.
-
-#### 3.2 Unique Reference Generation Microservice (C#)  
-**Service:** `ref-gen-service` (.NET 8 Minimal API)  
-**Internal Endpoint:** `POST /api/generate-reference`  
-- Returns a unique reference in format `REF-YYYYMMDD-XXXXXX`  
-- Guarantees uniqueness using SQLite sequence or JSON file  
-
-#### 3.3 Exchange Rate Calculation Microservice (C#)  
-**Service:** `exchange-rate-service` (.NET 8 Minimal API)  
-**Internal Endpoint:** `POST /api/convert`  
-- Mock service (always returns rate = 1.0 for NAD)  
-- Included for future extensibility  
-
-#### 3.4 Payment Processing Microservice (C#)  
-**Service:** `payment-service` (.NET 8 Web API)  
-**Internal Endpoint:** `POST /api/p2p-payment`  
-- Implements the exact Mock API Specification (pages 3–5 of challenge)  
-- Accepts the precise JSON payload shown in section 6  
-- Performs full server-side validation (all rules in section 5)  
-- Calls reference and exchange services internally  
-- Returns exact success or error responses (including ERR001–ERR006)  
-- Stores the full transaction (request + response) in SQLite or JSON  
-
-#### 3.5 API Gateway (Single Entry Point)  
-**Service:** `api-gateway` (Traefik v3)  
-- **Only external port exposed:** 8080  
-- All requests (frontend and API) must use `http://localhost:8080`  
-- Exact routing:  
-  - `POST /api/p2p-payment` → payment-service  
-  - `POST /api/generate-reference` → ref-gen-service  
-  - `POST /api/convert` → exchange-rate-service  
-  - `/` → React frontend  
-
-#### 3.6 Data Persistence  
-- Primary: SQLite database (`ipn_p2p.db`) via EF Core, mounted as Docker volume  
-- Alternative: Plain JSON files (simple prototype mode – switchable via environment variable)  
-- Every transaction is saved for audit purposes  
-
-#### 3.7 Validation  
-- Frontend: Zod schema + React Hook Form (real-time)  
-- Backend: FluentValidation (exact match to challenge rules)  
-- Invalid submissions are rejected before reaching the mock API  
-
-### 4. Non-Functional Requirements  
-- End-to-end response time < 800 ms  
-- Single external URL for evaluators (http://localhost:8080)  
-- Clear, structured logging with correlation IDs  
-- Health-check endpoints on all services  
-
-### 5. Architecture Overview  
-
-#### 5.1 C# Microservice Project Structure (Strictly Followed in All Three Services)  
-Every C# microservice (`ref-gen-service`, `exchange-rate-service`, and `payment-service`) uses the exact same clean, layered folder structure:
+3. Open your browser to:
 
 ```
-MicroserviceName/
-├── Services/              → All business logic (e.g. PaymentService.cs, ReferenceGeneratorService.cs)
-├── Repository/            → All data integrations (SQLite via EF Core, JSON file I/O, external calls)
-├── Interfaces/            → All interface definitions (e.g. IPaymentService.cs, ITransactionRepository.cs)
-├── Utilities/             → All shared utilities (e.g. ValidationHelpers.cs, LoggingExtensions.cs, CorrelationIdMiddleware.cs)
-├── Models/                → DTOs and domain models (placed here for clarity)
-├── Program.cs             → Entry point with full Dependency Injection setup
-├── appsettings.json
-├── Dockerfile
-└── ...
+http://localhost:3080
 ```
+
+That single URL serves the frontend and proxies API requests to the correct microservice.
+
+To stop the system:
+
+```bash
+docker compose down
+```
+
+---
+
+## 📁 Folder structure
+- `1. Requirements/` → Contains the requirements document used to build this solution.
+- `2. Figma Designs/` → UI mockups and design assets.
+- `3. Code/` → Source code (frontend + microservices + gateway):
+  - `frontend/` → React app (Vite, Tailwind, React Hook Form, Zod)
+  - `PaymentService/` → P2P payment API (validation + persistence)
+  - `RefGenService/` → Unique client reference generator
+  - `ExchangeRateService/` → Mock exchange rate service (returns 1.0 for NAD)
+  - `traefik/` → Traefik gateway configuration
+  - `docker-compose.yml` → Orchestration for all services
+- `Screenshots/` → Application screenshots showing the form and result screen.
+
+---
+
+## 🧠 Development process
+1. **Deduced requirements** and documented them in `1. Requirements/Requirement.md`.
+2. **Sketched UI flows in Figma** to confirm the user experience before coding.
+3. **Designed the code structure** around a microservice architecture to support nationwide scalability.
+4. **Implemented services** with a consistent folder structure (Services / Repository / Interfaces / Utilities) and full DI.
 
 **Key Rules (applied identically in every service):**  
 - **Dependency Injection is used at all times** – every class is registered in `Program.cs` using the built-in .NET DI container (`services.AddScoped<>()`, `services.AddSingleton<>()`, etc.).  
