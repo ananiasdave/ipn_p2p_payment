@@ -169,12 +169,15 @@ export function SendMoneyPage() {
       setValue('currency', 'NAD', { shouldValidate: true });
     }
 
-    // Set receiver account after currency so validators pass
-    setValue('receiverAccountNumber', account, { shouldValidate: true });
-    // Set BIC if contact has one
-    if (selectedContact?.bic) {
-      setValue('bicCode', selectedContact.bic, { shouldValidate: true });
-    }
+    // Set all values with a slight delay to ensure UI picks up the changes correctly,
+    // especially for the BIC dropdown which depends on availableBics being loaded.
+    setTimeout(() => {
+      setValue('receiverAccountNumber', account, { shouldValidate: true });
+      if (selectedContact?.bic) {
+        setValue('bicCode', selectedContact.bic, { shouldValidate: true });
+      }
+    }, 10);
+    
     setShowContacts(false);
   };
 

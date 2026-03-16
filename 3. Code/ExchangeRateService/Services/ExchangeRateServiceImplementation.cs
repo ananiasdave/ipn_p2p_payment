@@ -46,6 +46,7 @@ public class ExchangeRateServiceImplementation : IExchangeRateService
             "TRUSTBNX", // Trustco Bank (NAM)
             "HSBCGB2L", // HSBC London (UK)
             "CITIUS33", // Citibank New York (USA)
+            "DEUTDEFF", // Deutsche Bank (Germany)
             "CHASSF33", // JPMorgan Chase (USA)
             "BARCGB2L", // Barclays Bank (UK)
             "DBSSSGXX", // DBS Bank (Singapore)
