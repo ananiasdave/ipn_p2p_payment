@@ -5,7 +5,7 @@ A microservice-based prototype that implements the IPN Developer Integration Cha
 ---
 
 ## 📝 Requirements
-All requirements are captured in **`1. Requirements/Requirement.md`** (the full Software Requirements Specification). This README is intentionally concise and focuses on what the project is and how to run it.
+All requirements are captured in **[1. Requirements/Requirement.md](1.%20Requirements/Requirement.md)** (the full Software Requirements Specification). Click the link to open the full spec directly.
 
 ---
 
